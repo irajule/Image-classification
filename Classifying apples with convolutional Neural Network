@@ -1,0 +1,164 @@
+# Import the necessary libraries
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+from sklearn import datasets
+import torchvision
+from torch.utils.data import Dataset
+import torchvision.transforms as transforms
+from skimage import io
+import pandas as pd
+import os
+import cv2
+from torch.utils.data import DataLoader, TensorDataset
+import torch
+import torch.nn as nn
+import torch.nn.functional as nnf
+from torchvision.ops import nms
+# Associating each image with its number of apples
+class Apples(Dataset):
+  def __init__(self,csv_file,root_dir,transform=None):
+    self.annot=pd.read_csv(csv_file)
+    self.root_dir=root_dir
+    self.transform=transform
+
+  def __len__(self):
+    return len(self.annot)
+    
+  def __getitem__(self,index):
+    
+    img_path=os.path.join(self.root_dir,self.annot.iloc[index,0])
+    
+    image=io.imread(img_path)
+   
+    y_label=torch.tensor(int(self.annot.iloc[index,1]))
+    if self.transform:
+      image=self.transform(image)
+    return (image,y_label)
+                         
+#Construct the model with 2 linear layers and 2 convolutional layers
+class Network(nn.Module):
+  def __init__(self):
+    super().__init__()
+    #conv layers
+    self.conv1=nn.Conv2d(in_channels=3,out_channels=6,kernel_size=5)
+    self.conv2=nn.Conv2d(in_channels=6,out_channels=16,kernel_size=5)
+
+    #Full connected layer or linear layers
+    self.fc1=nn.Linear(in_features=16*5*5,out_features=120)
+    self.fc2=nn.Linear(in_features=120,out_features=84)
+    self.out=nn.Linear(in_features=84,out_features=7)
+  def forward(self,output):
+    
+    output=self.conv1(output)
+    output=F.relu(output)
+    output=F.max_pool2d(output,kernel_size=2,stride=2)
+    output=self.conv2(output)
+    output=F.relu(output)
+    output=F.max_pool2d(output,kernel_size=2,stride=2)
+      #linear layer
+    output=output.view(-1,16*5*5)
+    output=self.fc1(output)
+    output=F.relu(output)
+    output=self.fc2(output)
+    output=F.relu(output)
+      #output layer
+    output=self.out(output)
+
+    return output
+
+network=Network()
+
+
+def num_correct(preds,labels):
+
+ return preds.argmax(dim=1).eq(labels).sum().item()
+optimizer=torch.optim.Adam(network.parameters(),lr=0.001)
+#from google.colab import drive
+#drive.mount('/content/drive')
+
+
+# Images and csv_file has to be downloaded from the following links:
+#train_csv link to download the csv file for training images=https://1drv.ms/u/s!AqCJziO-JhbIkVk8S_auMbZU10nD?e=qwCJGx
+#train_images link to download images=https://livebournemouthac-my.sharepoint.com/:f:/g/personal/s5326996_bournemouth_ac_uk/EizvnZf0jVlAsxUYaGvVAAABupNEX5QX3pFzuHAmrt-C8A?e=AtnVDn
+#The used images are trnasformed to a size of 32 to 32. 
+dataset_train =Apples(csv_file='train.csv path',root_dir='train_images path',
+                                                 
+                            transform=
+                      transforms.Compose([
+                                                       
+                            transforms.ToTensor(),
+                            transforms.Resize((32,32))    
+                                                    
+                                  
+                                          
+                                                       
+                           ])
+      
+                           )
+  
+data_loader=torch.utils.data.DataLoader(dataset_train,
+                                          batch_size=100,
+                                          shuffle=True
+)
+
+def correct_pred(preds,labels):
+  return preds.argmax(dim=1).eq(labels).sum().item()
+
+#Training
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+ 
+network.to(device) 
+print('***********************The training starts now**********************')
+# The model is trained for 100 epochs.
+for epoch in range(100):
+
+  total_loss=0
+  
+  
+  for batch in data_loader:
+    images,labels=batch
+    preds=network(images.cuda())
+    loss=F.cross_entropy(preds,labels.cuda())
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    total_loss+=loss.item()
+    #total_correct+=correct_pred(preds,labels)
+  print('Epoch'+str(epoch)+' total loss: '+str(total_loss))
+
+print('********************Training has ended. Testing starts soon***********************')
+
+#Testing
+# Images has to be downloaded from the following links:
+#link to download test images=https://livebournemouthac-my.sharepoint.com/:f:/g/personal/s5326996_bournemouth_ac_uk/EmP-5_lipltEi8k7g69_4f8BVdaCpuNv7ta_Hv6F476nIQ?e=ewSNoc
+#link to downlaod test csv file=https://livebournemouthac-my.sharepoint.com/:x:/g/personal/s5326996_bournemouth_ac_uk/EVcD8jhOZyhIpZYyHJjiAoQBgiwFk656qIlW_7hZA46zPA?e=siyys2
+
+test=Apples(csv_file='test.csv path' ,root_dir='test images path',
+                                                 
+                            transform=
+                      transforms.Compose([
+                                                       
+                            transforms.ToTensor(),
+                            transforms.Resize((32,32))    
+                                   
+                           ])
+)
+loader=torch.utils.data.DataLoader(test,
+                                          batch_size=1,
+                                          shuffle=False
+
+)
+
+network.eval()
+total_correct=0
+print('*****************Testing starts now***************')
+for i in range(len(test)):
+ 
+  im,label=test[i]
+  pred=network(im[None,...].cuda())
+  label=label.cuda()
+  if label==pred.argmax():
+    total_correct+=1
+print('Accuracy rate is '+str(total_correct/len(test)*100)+'%')

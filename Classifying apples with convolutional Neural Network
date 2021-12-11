@@ -162,3 +162,4 @@ for i in range(len(test)):
   if label==pred.argmax():
     total_correct+=1
 print('Accuracy rate is '+str(total_correct/len(test)*100)+'%')
+# Achieved accuracy rate=71%

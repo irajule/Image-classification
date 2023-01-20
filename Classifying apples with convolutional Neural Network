@@ -90,10 +90,7 @@ dataset_train =Apples(csv_file='train.csv path',root_dir='train_images path',
                                                        
                             transforms.ToTensor(),
                             transforms.Resize((32,32))    
-                                                    
-                                  
-                                          
-                                                       
+                                                  
                            ])
       
                            )

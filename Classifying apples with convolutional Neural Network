@@ -19,7 +19,7 @@ from torchvision.ops import nms
 # Associating each image with its number of apples
 class Apples(Dataset):
   def __init__(self,csv_file,root_dir,transform=None):
-    self.annot=pd.read_csv(csv_file)
+    self.annot=pd.read_csv("csv_file_path")
     self.root_dir=root_dir
     self.transform=transform
 
@@ -30,7 +30,7 @@ class Apples(Dataset):
     
     img_path=os.path.join(self.root_dir,self.annot.iloc[index,0])
     
-    image=io.imread(img_path)
+    image=io.imread("img_path")
    
     y_label=torch.tensor(int(self.annot.iloc[index,1]))
     if self.transform:
@@ -45,7 +45,7 @@ class Network(nn.Module):
     self.conv1=nn.Conv2d(in_channels=3,out_channels=6,kernel_size=5)
     self.conv2=nn.Conv2d(in_channels=6,out_channels=16,kernel_size=5)
 
-    #Full connected layer or linear layers
+    #Fully connected layers or linear layers
     self.fc1=nn.Linear(in_features=16*5*5,out_features=120)
     self.fc2=nn.Linear(in_features=120,out_features=84)
     self.out=nn.Linear(in_features=84,out_features=7)
@@ -70,15 +70,12 @@ class Network(nn.Module):
 
 network=Network()
 
-
 def num_correct(preds,labels):
-
  return preds.argmax(dim=1).eq(labels).sum().item()
+ # Initialise the optimizer
 optimizer=torch.optim.Adam(network.parameters(),lr=0.001)
 #from google.colab import drive
 #drive.mount('/content/drive')
-
-
 # Images and csv_file has to be downloaded from the following links:
 #train_csv link to download the csv file for training images=https://1drv.ms/u/s!AqCJziO-JhbIkVk8S_auMbZU10nD?e=qwCJGx
 #train_images link to download images=https://livebournemouthac-my.sharepoint.com/:f:/g/personal/s5326996_bournemouth_ac_uk/EizvnZf0jVlAsxUYaGvVAAABupNEX5QX3pFzuHAmrt-C8A?e=AtnVDn
@@ -110,10 +107,7 @@ network.to(device)
 print('***********************The training starts now**********************')
 # The model is trained for 100 epochs.
 for epoch in range(100):
-
   total_loss=0
-  
-  
   for batch in data_loader:
     images,labels=batch
     preds=network(images.cuda())
